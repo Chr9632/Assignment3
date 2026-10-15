@@ -163,3 +163,4 @@ C:\Users\MR201\OneDrive\Dokumenter\assignment-3 - movievault\assignment_3_moviev
 C:\Users\MR201\OneDrive\Dokumenter\assignment-3 - movievault\assignment_3_movievault\bin\Debug\net10.0\runtimes\win-arm64\native\msalruntime_arm64.dll
 C:\Users\MR201\OneDrive\Dokumenter\assignment-3 - movievault\assignment_3_movievault\bin\Debug\net10.0\runtimes\win-x64\native\msalruntime.dll
 C:\Users\MR201\OneDrive\Dokumenter\assignment-3 - movievault\assignment_3_movievault\bin\Debug\net10.0\runtimes\win-x86\native\msalruntime_x86.dll
+C:\Users\MR201\OneDrive\Dokumenter\assignment-3 - movievault\assignment_3_movievault\obj\Debug\net10.0\assignment_3_movievault.sourcelink.json
