@@ -304,7 +304,10 @@ namespace assignment_3_movievault.Migrations
             modelBuilder.Entity("Movie", b =>
                 {
                     b.Property<int>("Movie_id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Movie_id"));
 
                     b.Property<int>("Age_rating")
                         .HasColumnType("int");
@@ -640,10 +643,7 @@ namespace assignment_3_movievault.Migrations
             modelBuilder.Entity("Production_record", b =>
                 {
                     b.Property<int>("Movie_id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Movie_id"));
 
                     b.Property<int>("Production_budget")
                         .HasColumnType("int");
@@ -1150,15 +1150,7 @@ namespace assignment_3_movievault.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Production_record", "Production_Record")
-                        .WithOne("Movie")
-                        .HasForeignKey("Movie", "Movie_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Director");
-
-                    b.Navigation("Production_Record");
 
                     b.Navigation("Production_company");
                 });
@@ -1197,6 +1189,17 @@ namespace assignment_3_movievault.Migrations
                         .IsRequired();
 
                     b.Navigation("Filming_location");
+
+                    b.Navigation("Movie");
+                });
+
+            modelBuilder.Entity("Production_record", b =>
+                {
+                    b.HasOne("Movie", "Movie")
+                        .WithOne("Production_Record")
+                        .HasForeignKey("Production_record", "Movie_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Movie");
                 });
@@ -1279,6 +1282,9 @@ namespace assignment_3_movievault.Migrations
 
                     b.Navigation("Movie_location");
 
+                    b.Navigation("Production_Record")
+                        .IsRequired();
+
                     b.Navigation("Screening");
                 });
 
@@ -1287,12 +1293,6 @@ namespace assignment_3_movievault.Migrations
                     b.Navigation("Movie");
 
                     b.Navigation("Studio");
-                });
-
-            modelBuilder.Entity("Production_record", b =>
-                {
-                    b.Navigation("Movie")
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Screen", b =>

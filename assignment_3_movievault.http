@@ -3,4 +3,16 @@
 GET {{assignment_3_movievault_HostAddress}}/weatherforecast/
 Accept: application/json
 
-###
+### Opret en ny film
+POST http://localhost:5203/movies
+Content-Type: application/json
+
+{
+  "title": "Test Movie",
+  "release_date": "2026-10-18T00:00:00",
+  "runtime": 120,
+  "age_rating": 13,
+  "status": "planned",
+  "director_id": 1,
+  "company_id": 1
+}

@@ -603,7 +603,10 @@ public class MovieContext : DbContext
             entity.HasOne(pr => pr.Production_Record).WithOne(m => m.Movie);
             entity.HasMany(s => s.Screening).WithOne(m => m.Movie);
             entity.HasOne(pc => pc.Production_company).WithMany(m => m.Movie).HasForeignKey(pc => pc.Company_id).OnDelete(DeleteBehavior.Cascade);
-            entity.HasKey(a => a.Movie_id); 
+            entity.HasKey(a => a.Movie_id);
+
+            entity.Property(m => m.Movie_id).UseIdentityColumn();
+            
             entity.Property(a => a.Release_date); 
             entity.Property(a => a.Runtime);
             entity.Property(a => a.Age_rating);
@@ -751,7 +754,13 @@ public class MovieContext : DbContext
         modelBuilder.Entity<Production_record>(entity =>
         {
             entity.HasKey(a => a.Movie_id);
-            entity.HasOne(m => m.Movie).WithOne(pr => pr.Production_Record).HasForeignKey<Movie>();
+
+
+            entity.Property(pr => pr.Movie_id).ValueGeneratedNever();
+
+
+            entity.HasOne(pr => pr.Movie).WithOne(m => m.Production_Record).HasForeignKey<Production_record>(pr => pr.Movie_id);
+
             entity.Property(a => a.Production_budget);
             entity.Property(a => a.Shooting_start_date);
             entity.Property(a => a.Shooting_end_date);
