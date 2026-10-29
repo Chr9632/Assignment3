@@ -24,6 +24,8 @@ Startede projektet op og begyndte med datamodellerne og de forskellige entities.
 Har også arbejdet med Entity Framework Core og DbContext.
 Har lavet den første grundlæggende opsætning af Web API'et i Program.cs og testet det.
 Har arbejdet med seeding af databasen og med at hente data fra den.
+Har testet de forskellige endpoints i Scalar for at se, om de virker.
+
 
 Instructions for running the application 
 1. Åbn projektets .sln-fil i Visual Studio 2026.
