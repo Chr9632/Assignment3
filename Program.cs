@@ -1,24 +1,19 @@
 using assignment_3_movievault.DTO;
 using Microsoft.EntityFrameworkCore;
+using assignment_3_movievault.Services;
 using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 using Serilog;
-using System.ComponentModel.DataAnnotations;
 
-Serilog.Debugging.SelfLog.Enable(Console.Error);
 
 var builder = WebApplication.CreateBuilder(args);
-
-var mongoConnectionString = builder.Configuration["MongoDB:ConnectionString"];
-var mongoCollectionName = builder.Configuration["MongoDB:CollectionName"];
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .WriteTo.MongoDBBson(
-        mongoConnectionString!,
-        collectionName: mongoCollectionName!)
+        "mongodb://localhost:27017/MovieVaultLogs",
+        collectionName: "logs")
     .CreateLogger();
-
 builder.Host.UseSerilog();
 
 Log.Information("MovieVault API - Serilog is working!");
@@ -32,11 +27,23 @@ builder.Services.AddDbContext<MovieContext>(option =>
    option.UseSqlServer(builder.Configuration["ConnectionStrings:DefaultConnection"]); 
 });
 
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
+builder.Services.AddScoped<CinemaRevenue>();
+builder.Services.AddScoped<MovieActor>();
+builder.Services.AddScoped<MovieLocation>();
+builder.Services.AddScoped<MovieServices>();
+builder.Services.AddScoped<Screenings>();
+builder.Services.AddScoped<TicketSales>();
+
+builder.Services.AddControllers();
+
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
 
 using var scope = app.Services.CreateScope();
+
 var context = scope.ServiceProvider.GetRequiredService<MovieContext>();
 
 IRepository<Actor> repository = new Repository<Actor>(context);
@@ -55,21 +62,25 @@ if (app.Environment.IsDevelopment())
 
 }
 
+app.MapControllers();
+
+
+/*
 //app.UseHttpsRedirection();
 app.MapGet("/movies", async (MovieContext db) =>
 {
     var movies = await db.Movies
         .AsNoTracking()
-        .Select(m => new MovieResponseDto
+        .Select(m => new
         {
-            Movie_id = m.Movie_id,
-            Title = m.Title,
-            Release_date = m.Release_date,
-            Runtime = m.Runtime,
-            Age_rating = m.Age_rating,
-            Status = m.Status,
-            Director_id = m.Director_id,
-            Company_id = m.Company_id
+            m.Movie_id,
+            m.Title,
+            m.Release_date,
+            m.Runtime,
+            m.Age_rating,
+            m.Status,
+            m.Director_id,
+            m.Company_id
         })
         .ToListAsync();
 
@@ -82,16 +93,16 @@ app.MapGet("/movies/{id:int}", async (int id, MovieContext db) =>
     var movie = await db.Movies
         .AsNoTracking()
         .Where(m => m.Movie_id == id)
-        .Select(m => new MovieResponseDto
+        .Select(m => new
         {
-            Movie_id = m.Movie_id,
-            Title = m.Title,
-            Release_date = m.Release_date,
-            Runtime = m.Runtime,
-            Age_rating = m.Age_rating,
-            Status = m.Status,
-            Director_id = m.Director_id,
-            Company_id = m.Company_id
+            m.Movie_id,
+            m.Title,
+            m.Release_date,
+            m.Runtime,
+            m.Age_rating,
+            m.Status,
+            m.Director_id,
+            m.Company_id
         })
         .FirstOrDefaultAsync();
 
@@ -152,16 +163,16 @@ app.MapPost("/movies", async (CreateMovieDto dto, MovieContext db) =>
     db.Movies.Add(movie);
     await db.SaveChangesAsync();
 
-    return Results.Created($"/movies/{movie.Movie_id}", new MovieResponseDto
+    return Results.Created($"/movies/{movie.Movie_id}", new
     {
-        Movie_id = movie.Movie_id,
-        Title = movie.Title,
-        Release_date = movie.Release_date,
-        Runtime = movie.Runtime,
-        Age_rating = movie.Age_rating,
-        Status = movie.Status,
-        Director_id = movie.Director_id,
-        Company_id = movie.Company_id
+        movie.Movie_id,
+        movie.Title,
+        movie.Release_date,
+        movie.Runtime,
+        movie.Age_rating,
+        movie.Status,
+        movie.Director_id,
+        movie.Company_id
     });
 });
 
@@ -218,17 +229,7 @@ app.MapPut("/movies/{id:int}", async (int id, UpdateMovieDto dto, MovieContext d
 
     await db.SaveChangesAsync();
 
-    return Results.Ok(new MovieResponseDto
-    {
-        Movie_id = movie.Movie_id,
-        Title = movie.Title,
-        Release_date = movie.Release_date,
-        Runtime = movie.Runtime,
-        Age_rating = movie.Age_rating,
-        Status = movie.Status,
-        Director_id = movie.Director_id,
-        Company_id = movie.Company_id
-    });
+    return Results.Ok(movie);
 });
 
 
@@ -249,8 +250,6 @@ app.MapDelete("/movies/{id:int}", async (int id, MovieContext db) =>
 
     return Results.NoContent();
 });
-
-
 
 
 app.MapPost("/ticket-sales", async (CreateTicketSaleDto dto, MovieContext db) =>
@@ -296,13 +295,12 @@ app.MapPost("/ticket-sales", async (CreateTicketSaleDto dto, MovieContext db) =>
     db.Set<Ticket_sale>().Add(sale);
     await db.SaveChangesAsync();
 
-    return Results.Created($"/ticket-sales/{sale.Sale_id}",
-        new TicketSaleResponseDto            
+    return Results.Created($"/ticket-sales/{sale.Sale_id}", new
     {
-        Sale_id = sale.Sale_id,
-        Quantity = sale.Quantity,
-        Sale_date_time = sale.Sale_date_time,
-        Screening_id = sale.Screening_id
+        sale.Sale_id,
+        sale.Quantity,
+        sale.Sale_date_time,
+        sale.Screening_id
     });
 });
 
@@ -312,12 +310,12 @@ app.MapGet("/ticket-sales", async (MovieContext db) =>
 {
     var sales = await db.Set<Ticket_sale>()
         .AsNoTracking()
-        .Select(s => new TicketSaleResponseDto
+        .Select(s => new
         {
-            Sale_id = s.Sale_id,
-            Quantity = s.Quantity,
-            Sale_date_time = s.Sale_date_time,
-            Screening_id = s.Screening_id
+            s.Sale_id,
+            s.Quantity,
+            s.Sale_date_time,
+            s.Screening_id
         })
         .ToListAsync();
 
@@ -331,12 +329,12 @@ app.MapGet("/ticket-sales/{id:int}", async (int id, MovieContext db) =>
     var sale = await db.Set<Ticket_sale>()
         .AsNoTracking()
         .Where(s => s.Sale_id == id)
-        .Select(s => new TicketSaleResponseDto
+        .Select(s => new
         {
-            Sale_id = s.Sale_id,
-            Quantity = s.Quantity,
-            Sale_date_time = s.Sale_date_time,
-            Screening_id = s.Screening_id
+            s.Sale_id,
+            s.Quantity,
+            s.Sale_date_time,
+            s.Screening_id
         })
         .FirstOrDefaultAsync();
 
@@ -402,12 +400,12 @@ app.MapPut("/ticket-sales/{id:int}", async (
 
     await db.SaveChangesAsync();
 
-    return Results.Ok(new TicketSaleResponseDto
+    return Results.Ok(new
     {
-        Sale_id = sale.Sale_id,
-        Quantity = sale.Quantity,
-        Sale_date_time = sale.Sale_date_time,
-        Screening_id = sale.Screening_id
+        sale.Sale_id,
+        sale.Quantity,
+        sale.Sale_date_time,
+        sale.Screening_id
     });
 });
 
@@ -435,18 +433,7 @@ app.MapPost("/movies/{movieId:int}/actors", async (
     AddMovieActorDto dto,
     MovieContext db) =>
 {
-
-    // Validér DTO
-    var validationResults = new List<ValidationResult>();
-    var validationContext = new ValidationContext(dto);
-
-    if (!Validator.TryValidateObject(dto, validationContext, validationResults, true))
-    {
-        return Results.BadRequest(validationResults.Select(v => v.ErrorMessage));
-    }
-
     // Kontrollér at filmen findes
-
     if (!await db.Set<Movie>().AnyAsync(m => m.Movie_id == movieId))
         return Results.NotFound("Movie not found.");
 
@@ -474,14 +461,14 @@ app.MapPost("/movies/{movieId:int}/actors", async (
     await db.SaveChangesAsync();
 
     return Results.Created(
-    $"/movies/{movieId}/actors/{dto.Actor_id}",
-    new MovieActorResponseDto
-    {
-        Movie_id = movieActor.Movie_id,
-        Actor_id = movieActor.Actor_id,
-        Role = movieActor.Role,
-        Character_name = movieActor.Character_name
-    });
+        $"/movies/{movieId}/actors/{dto.Actor_id}",
+        new
+        {
+            movieActor.Movie_id,
+            movieActor.Actor_id,
+            movieActor.Role,
+            movieActor.Character_name
+        });
 });
 
 
@@ -511,16 +498,6 @@ app.MapPost("/movies/{movieId:int}/locations", async (
     AddMovieLocationDto dto,
     MovieContext db) =>
 {
-
-    // Validér DTO
-    var validationResults = new List<ValidationResult>();
-    var validationContext = new ValidationContext(dto);
-
-    if (!Validator.TryValidateObject(dto, validationContext, validationResults, true))
-    {
-        return Results.BadRequest(validationResults.Select(v => v.ErrorMessage));
-    }
-
     // Kontrollér at filmen findes
     if (!await db.Set<Movie>().AnyAsync(m => m.Movie_id == movieId))
         return Results.NotFound("Movie not found.");
@@ -551,13 +528,13 @@ app.MapPost("/movies/{movieId:int}/locations", async (
     await db.SaveChangesAsync();
 
     return Results.Created(
-    $"/movies/{movieId}/locations/{dto.Location_id}",
-    new MovieLocationResponseDto
-    {
-        Movie_id = movieLocation.Movie_id,
-        Location_id = movieLocation.Location_id,
-        Shooting_days = movieLocation.Shooting_days
-    });
+        $"/movies/{movieId}/locations/{dto.Location_id}",
+        new
+        {
+            movieLocation.Movie_id,
+            movieLocation.Location_id,
+            movieLocation.Shooting_days
+        });
 });
 
 
@@ -606,10 +583,6 @@ app.MapPost("/screenings", async (
     if (dto.Date == default || dto.Start_time == default)
         return Results.BadRequest("Date and start time are required.");
 
-    // Kontrollér at dato og starttidspunkt er samme dag
-    if (dto.Date.Date != dto.Start_time.Date)
-        return Results.BadRequest("Date and start time must be on the same day.");
-
     // Opret forestillingen
     var screening = new Screening
     {
@@ -625,17 +598,17 @@ app.MapPost("/screenings", async (
     await db.SaveChangesAsync();
 
     return Results.Created(
-      $"/screenings/{screening.Screening_id}",
-      new ScreeningResponseDto
-      {
-          Screening_id = screening.Screening_id,
-          Date = screening.Date,
-          Start_time = screening.Start_time,
-          Ticket_price = screening.Ticket_price,
-          Movie_id = screening.Movie_id,
-          Screen_number = screening.Screen_number,
-          Cinema_id = screening.Cinema_id
-      });
+        $"/screenings/{screening.Screening_id}",
+        new
+        {
+            screening.Screening_id,
+            screening.Date,
+            screening.Start_time,
+            screening.Ticket_price,
+            screening.Movie_id,
+            screening.Screen_number,
+            screening.Cinema_id
+        });
 });
 
 
@@ -652,16 +625,16 @@ app.MapGet("/movies/{movieId:int}/screenings",
             .AsNoTracking()
             .Where(s => s.Movie_id == movieId)
             .OrderBy(s => s.Start_time)
-           .Select(s => new ScreeningResponseDto
-           {
-               Screening_id = s.Screening_id,
-               Date = s.Date,
-               Start_time = s.Start_time,
-               Ticket_price = s.Ticket_price,
-               Movie_id = s.Movie_id,
-               Screen_number = s.Screen_number,
-               Cinema_id = s.Cinema_id
-           })
+            .Select(s => new
+            {
+                s.Screening_id,
+                s.Date,
+                s.Start_time,
+                s.Ticket_price,
+                s.Movie_id,
+                s.Screen_number,
+                s.Cinema_id
+            })
             .ToListAsync();
 
         return Results.Ok(screenings);
@@ -681,15 +654,15 @@ app.MapGet("/cinemas/{cinemaId:int}/screenings",
             .AsNoTracking()
             .Where(s => s.Cinema_id == cinemaId)
             .OrderBy(s => s.Start_time)
-            .Select(s => new ScreeningResponseDto
+            .Select(s => new
             {
-                Screening_id = s.Screening_id,
-                Date = s.Date,
-                Start_time = s.Start_time,
-                Ticket_price = s.Ticket_price,
-                Movie_id = s.Movie_id,
-                Screen_number = s.Screen_number,
-                Cinema_id = s.Cinema_id
+                s.Screening_id,
+                s.Date,
+                s.Start_time,
+                s.Ticket_price,
+                s.Movie_id,
+                s.Screen_number,
+                s.Cinema_id
             })
             .ToListAsync();
 
@@ -744,15 +717,15 @@ app.MapPut("/screenings/{id:int}", async (
 
     await db.SaveChangesAsync();
 
-    return Results.Ok(new ScreeningResponseDto
+    return Results.Ok(new
     {
-        Screening_id = screening.Screening_id,
-        Date = screening.Date,
-        Start_time = screening.Start_time,
-        Ticket_price = screening.Ticket_price,
-        Movie_id = screening.Movie_id,
-        Screen_number = screening.Screen_number,
-        Cinema_id = screening.Cinema_id
+        screening.Screening_id,
+        screening.Date,
+        screening.Start_time,
+        screening.Ticket_price,
+        screening.Movie_id,
+        screening.Screen_number,
+        screening.Cinema_id
     });
 });
 
@@ -785,14 +758,14 @@ app.MapGet("/movies/overview", async (MovieContext db) =>
 {
     var movies = await db.Set<Movie>()
         .AsNoTracking()
-        .Select(m => new MovieOverviewResponseDto
+        .Select(m => new
         {
-            Movie_id = m.Movie_id,
-            Title = m.Title,
-            Release_date = m.Release_date,
-            Runtime = m.Runtime,
-            Age_rating = m.Age_rating,
-            Status = m.Status,
+            m.Movie_id,
+            m.Title,
+            m.Release_date,
+            m.Runtime,
+            m.Age_rating,
+            m.Status,
 
             Director = m.Director.Name,
             Production_company = m.Production_company.Name,
@@ -809,35 +782,35 @@ app.MapGet("/movies/{id:int}/details", async (int id, MovieContext db) =>
     var movie = await db.Set<Movie>()
         .AsNoTracking()
         .Where(m => m.Movie_id == id)
-        .Select(m => new MovieDetailsResponseDto
+        .Select(m => new
         {
-            Movie_id = m.Movie_id,
-            Title = m.Title,
-            Release_date = m.Release_date,
-            Runtime = m.Runtime,
-            Age_rating = m.Age_rating,
-            Status = m.Status,
+            m.Movie_id,
+            m.Title,
+            m.Release_date,
+            m.Runtime,
+            m.Age_rating,
+            m.Status,
 
             Director = m.Director.Name,
             Production_company = m.Production_company.Name,
             Production_budget = m.Production_Record.Production_budget,
 
-            Actors = m.Movie_actor.Select(ma => new MovieDetailsActorDto
+            Actors = m.Movie_actor.Select(ma => new
             {
-                Actor_id = ma.Actor_id,
+                ma.Actor_id,
                 Actor_name = ma.Actor.Name,
-                Role = ma.Role,
-                Character_name = ma.Character_name
+                ma.Role,
+                ma.Character_name
             }).ToList(),
 
-            Filming_locations = m.Movie_location.Select(ml => new MovieDetailsLocationDto
+            Filming_locations = m.Movie_location.Select(ml => new
             {
-                Location_id = ml.Location_id,
+                ml.Location_id,
                 Location_name = ml.Filming_location.Name,
-                City = ml.Filming_location.City,
-                Country = ml.Filming_location.Country,
-                Location_type = ml.Filming_location.Location_type,
-                Shooting_days = ml.Shooting_days
+                ml.Filming_location.City,
+                ml.Filming_location.Country,
+                ml.Filming_location.Location_type,
+                ml.Shooting_days
             }).ToList()
         })
         .FirstOrDefaultAsync();
@@ -848,6 +821,7 @@ app.MapGet("/movies/{id:int}/details", async (int id, MovieContext db) =>
     return Results.Ok(movie);
 });
 
+
 app.MapGet("/screenings/upcoming", async (MovieContext db) =>
 {
     var now = DateTime.Now;
@@ -856,17 +830,17 @@ app.MapGet("/screenings/upcoming", async (MovieContext db) =>
         .AsNoTracking()
         .Where(s => s.Start_time > now)
         .OrderBy(s => s.Start_time)
-        .Select(s => new UpcomingScreeningResponseDto
+        .Select(s => new
         {
-            Screening_id = s.Screening_id,
+            s.Screening_id,
             Movie_title = s.Movie.Title,
             Cinema_name = s.Screen.Cinema.Name,
             Cinema_city = s.Screen.Cinema.City,
-            Screen_number = s.Screen_number,
+            s.Screen_number,
             Screen_name = s.Screen.Name,
-            Date = s.Date,
-            Start_time = s.Start_time,
-            Ticket_price = s.Ticket_price
+            s.Date,
+            s.Start_time,
+            s.Ticket_price
         })
         .ToListAsync();
 
@@ -899,12 +873,12 @@ app.MapGet("/movies/{id:int}/ticket-sales", async (int id, MovieContext db) =>
     var totalTickets = sales.Sum(s => s.Quantity);
     var totalRevenue = sales.Sum(s => (long)s.Quantity * s.Ticket_price);
 
-    return Results.Ok(new MovieTicketSalesResponseDto
+    return Results.Ok(new
     {
-        Movie_id = movie.Movie_id,
-        Title = movie.Title,
-        Total_tickets_sold = totalTickets,
-        Total_revenue = totalRevenue
+        movie.Movie_id,
+        movie.Title,
+        total_tickets_sold = totalTickets,
+        total_revenue = totalRevenue
     });
 });
 
@@ -912,17 +886,17 @@ app.MapGet("/movies/{id:int}/ticket-sales", async (int id, MovieContext db) =>
 app.MapGet("/cinemas/revenue", async (MovieContext db) =>
 {
     var cinemas = await db.Set<Cinema>()
-        .Select(c => new CinemaRevenueResponseDto
+        .Select(c => new
         {
-            Cinema_id = c.Cinema_id,
-            Name = c.Name,
-            City = c.City,
+            c.Cinema_id,
+            c.Name,
+            c.City,
 
-            Total_tickets_sold = db.Set<Ticket_sale>()
+            total_tickets_sold = db.Set<Ticket_sale>()
                 .Where(t => t.Screening.Cinema_id == c.Cinema_id)
                 .Sum(t => (int?)t.Quantity) ?? 0,
 
-            Total_revenue = db.Set<Ticket_sale>()
+            total_revenue = db.Set<Ticket_sale>()
                 .Where(t => t.Screening.Cinema_id == c.Cinema_id)
                 .Sum(t => (long?)t.Quantity * t.Screening.Ticket_price) ?? 0L
         })
@@ -930,6 +904,7 @@ app.MapGet("/cinemas/revenue", async (MovieContext db) =>
 
     return Results.Ok(cinemas);
 });
+
 
 app.MapGet("/actors/{id:int}/movie-performance", async (int id, MovieContext db) =>
 {
@@ -945,28 +920,30 @@ app.MapGet("/actors/{id:int}/movie-performance", async (int id, MovieContext db)
     // Find skuespillerens film
     var movies = await db.Set<Movie_actor>()
         .Where(ma => ma.Actor_id == id)
-        .Select(ma => new ActorMoviePerformanceMovieDto
+        .Select(ma => new
         {
-            Movie_id = ma.Movie_id,
-            Movie_title = ma.Movie.Title,
+            ma.Movie_id,
+            movie_title = ma.Movie.Title,
 
-            Tickets_sold = db.Set<Ticket_sale>()
+            tickets_sold = db.Set<Ticket_sale>()
                 .Where(t => t.Screening.Movie_id == ma.Movie_id)
                 .Sum(t => (int?)t.Quantity) ?? 0
         })
         .ToListAsync();
 
     // Beregn det samlede billetsalg
-    var totalTickets = movies.Sum(m => m.Tickets_sold);
+    var totalTickets = movies.Sum(m => m.tickets_sold);
 
-    return Results.Ok(new ActorMoviePerformanceResponseDto
+    return Results.Ok(new
     {
-        Actor_id = actor.Actor_id,
-        Name = actor.Name,
-        Movies = movies,
-        Total_tickets_sold = totalTickets
+        actor.Actor_id,
+        actor.Name,
+        movies,
+        total_tickets_sold = totalTickets
     });
 });
+
+*/
 
 //////////////////////////////////
 
