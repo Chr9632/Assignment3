@@ -13,5 +13,6 @@ public class Director
     public DateTime Date_birth {get; set; }
     public string Nationality {get; set; } = string.Empty;
     public ICollection<Movie> Movie { get; set; } = null!;
-    
+    public string? Identity_user_id { get; set; }
+    public Identity_user? Identity_user { get; set; }
 }

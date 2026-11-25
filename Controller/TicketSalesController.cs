@@ -1,29 +1,75 @@
+using System.Security.Claims;
 using assignment_3_movievault.DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("[controller]")]
 public class TicketSalesController : ControllerBase
 {
     private readonly TicketSales _ticketsales;
+    private readonly MovieContext _context;
 
-    public TicketSalesController(TicketSales ticketsales)
+    public TicketSalesController(TicketSales ticketsales, MovieContext context)
     {
         _ticketsales = ticketsales;
+        _context = context;
     }
 
+    private async Task<List<int>?> GetSpecificTicketsAsync(CancellationToken cancellationToken)
+    {
+        if(User.IsInRole("Admin") || User.IsInRole("Reviewer"))
+        {
+            return null;
+        }
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if(string.IsNullOrEmpty(userId))
+        {
+            return new List<int>();
+        }
+
+        if(User.IsInRole("Actor"))
+        {
+            return await _context.Movie_actors.Where(ma => ma.Actor.Identity_user_id == userId)
+            .Select(ma => ma.Movie_id)
+            .ToListAsync(cancellationToken);
+        }
+
+        if(User.IsInRole("Director"))
+        {
+            return await _context.Movies.Where(m => m.Director.Identity_user_id == userId).Select(m => m.Movie_id).ToListAsync(cancellationToken);
+        }
+
+        return new List<int>();
+    }
+
+    [Authorize(Roles = "Actor,Director,Reviewer,Admin")]
     [HttpGet]
     public async Task<IActionResult> GetAllTickets(CancellationToken cancellationToken)
     {
         var tickets = await _ticketsales.GetAllTicketsAsync(cancellationToken);
+        var Ids = await GetSpecificTicketsAsync(cancellationToken);
         if(tickets == null)
         {
             return NotFound("Tickets not found");
         }
 
+        if(Ids != null)
+        {
+            var screeningIds = await _context.Screenings
+            .Where(s => Ids.Contains(s.Movie_id))
+            .Select(s => s.Screening_id)
+            .ToListAsync(cancellationToken);
+            tickets = tickets.Where(t => screeningIds.Contains(t.Screening_id)).ToList();
+        }
+
         return Ok(tickets);
     }
-
+    
+    [Authorize(Roles = "Actor,Director,Reviewer,Admin")]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetTicket(int id, CancellationToken cancellationToken)
     {
@@ -33,9 +79,22 @@ public class TicketSalesController : ControllerBase
             return NotFound("Ticket sale not found");
         }
 
+        var Ids = await GetSpecificTicketsAsync(cancellationToken);
+        if(Ids != null)
+        {
+            var canAccessTicket = await _context.Screenings.AnyAsync(
+                s => s.Screening_id == ticket.Screening_id && Ids.Contains(s.Movie_id),
+                cancellationToken);
+            if(!canAccessTicket)
+            {
+                return Forbid();
+            }
+        }
+
         return Ok(ticket);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> AddTicket(CreateTicketSaleDto dto, CancellationToken cancellationToken)
     {
@@ -78,7 +137,8 @@ public class TicketSalesController : ControllerBase
 
         return CreatedAtAction(nameof(GetTicket), new {id = tickets.Sale_id}, tickets); 
     }
-
+    
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateTicket(int id, UpdateTicketSaleDto dto, CancellationToken cancellationToken)
     {
@@ -134,7 +194,7 @@ public class TicketSalesController : ControllerBase
 
     }
 
-
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> RemoveTicket(int id, CancellationToken cancellationToken)
     {
@@ -147,10 +207,17 @@ public class TicketSalesController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "Actor,Director,Admin")]
     [HttpGet("{id}/TicketSales")]
     public async Task<IActionResult> GetTicketSalesMovie(int id, CancellationToken cancellationToken)
     {
         var tickets = await _ticketsales.GetTicketSalesMovieAsync(id, cancellationToken);
+        var Ids = await GetSpecificTicketsAsync(cancellationToken);
+
+        if(Ids != null && !Ids.Contains(id))
+        {
+            return Forbid();
+        }
         
         return Ok(tickets);
     }

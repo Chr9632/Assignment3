@@ -16,4 +16,6 @@ public class Actor
     public string Nationality { get; set; } = string.Empty;
     public char Gender { get; set; }
     public ICollection<Movie_actor> Movie_actor { get; set; } = null!;
+    public string? Identity_user_id { get; set; }
+    public Identity_user? Identity_user { get; set; }
 }

@@ -1,5 +1,8 @@
 using assignment_3_movievault.DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 // From Line 414
 
@@ -8,13 +11,34 @@ using Microsoft.AspNetCore.Mvc;
 public class MovieActorController : ControllerBase
 {
     private readonly MovieActor _movieactor;
+    private readonly MovieContext _context;
 
-    public MovieActorController(MovieActor movieactor)
+    public MovieActorController(MovieActor movieactor, MovieContext context)
     {
         _movieactor = movieactor;
+        _context = context;
     }
 
-    
+    private async Task<List<int>?> GetSpecificActorsAsync(CancellationToken cancellationToken)
+    {
+        if (User.IsInRole("Admin"))
+        {
+            return null;
+        }
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return new List<int>();
+        }
+
+        return await _context.Actors
+            .Where(a => a.Identity_user_id == userId)
+            .Select(a => a.Actor_id)
+            .ToListAsync(cancellationToken);
+    }
+
+    [Authorize(Roles = "Admin")]
     [HttpPost("/movies/{movieId}/actors")]
     public async Task<IActionResult> AddMovieActor(int movieId, AddMovieActorDto dto, CancellationToken cancellationToken)
     {
@@ -41,6 +65,7 @@ public class MovieActorController : ControllerBase
         
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("/movies/{movieId}/actors/{actorId}")]
     public async Task<IActionResult> RemoveMovieActor(int movieId, int actorId, CancellationToken cancellationToken)
     {
@@ -53,9 +78,22 @@ public class MovieActorController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "Actor,Admin")]
     [HttpGet("/actors/{id}/movie-performance")]
     public async Task<IActionResult> GetMoviePerformance(int id, CancellationToken cancellationToken)
     {
+        var actorExists = await _context.Actors.AnyAsync(a => a.Actor_id == id, cancellationToken);
+        if (!actorExists)
+        {
+            return NotFound("Actor not found");
+        }
+
+        var Ids = await GetSpecificActorsAsync(cancellationToken);
+        if (Ids != null && !Ids.Contains(id))
+        {
+            return Forbid();
+        }
+
         var actorMovie = await _movieactor.GetMoviePerformanceAsync(id, cancellationToken);
         if(actorMovie == null)
         {
@@ -64,4 +102,5 @@ public class MovieActorController : ControllerBase
         
         return Ok(actorMovie);
     }
+
 }

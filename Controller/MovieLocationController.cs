@@ -1,4 +1,5 @@
 using assignment_3_movievault.DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -12,6 +13,7 @@ public class MovieLocationController : ControllerBase
         _movielocation = movielocation;
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost("/movies/{movieId}/locations")]
     public async Task<IActionResult> AddMovieLocation(int movieId, AddMovieLocationDto dto, CancellationToken cancellationToken)
     {
@@ -39,6 +41,7 @@ public class MovieLocationController : ControllerBase
         return CreatedAtAction(nameof(AddMovieLocation), new { movieId }, movieLocation);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("/movies/{movieId}/locations/{locationId}")]
     public async Task<IActionResult> RemoveMovieLocation(int movieId, int locationId, CancellationToken cancellationToken)
     {

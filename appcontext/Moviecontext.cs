@@ -1,7 +1,8 @@
 
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-public class MovieContext : DbContext
+public class MovieContext : IdentityDbContext<Identity_user>
 {
     public MovieContext(DbContextOptions<MovieContext> options) : base(options)
     {}
@@ -19,6 +20,9 @@ public class MovieContext : DbContext
     public DbSet<Screening> Screenings {get; set; }
     public DbSet<Studio> Studios {get; set; }
     public DbSet<Ticket_sale> Ticket_sales {get; set; }
+    public DbSet<Reviewer> Reviewers {get; set; }
+    public DbSet<Media_outlet> Media_outlets {get; set; }
+    public DbSet<Review> Reviews {get; set; }
 
     /* 
         - .Property => Individual properties/columns
@@ -46,6 +50,7 @@ public class MovieContext : DbContext
         */
         modelBuilder.Entity<Actor>(entity =>
         {
+            entity.HasOne(a => a.Identity_user).WithOne(i => i.Actor).HasForeignKey<Actor>(a => a.Identity_user_id).OnDelete(DeleteBehavior.Restrict);
             entity.HasKey(a => a.Actor_id);
             entity.Property(a => a.Name);
             entity.Property(a => a.Date_birth);
@@ -77,7 +82,7 @@ public class MovieContext : DbContext
                     Name = "Leonardo DiCaprio", 
                     Date_birth = new DateTime(1974, 11, 11),
                     Nationality="American",
-                    Gender='M'
+                    Gender='M',
                 }, 
                 new Actor
                 {
@@ -206,6 +211,7 @@ public class MovieContext : DbContext
 
         modelBuilder.Entity<Director>(entity =>
         {
+            entity.HasOne(d => d.Identity_user).WithOne(i => i.Director).HasForeignKey<Director>(d => d.Identity_user_id).OnDelete(DeleteBehavior.Restrict);
             entity.HasMany(m => m.Movie).WithOne(d => d.Director);
             entity.HasKey(a => a.Director_id);
             entity.Property(a => a.Name);
@@ -230,7 +236,7 @@ public class MovieContext : DbContext
                     Director_id = 1,
                     Name = "Christopher Nolan",
                     Date_birth = new DateTime(1970, 7, 30),
-                    Nationality = "British"
+                    Nationality = "British",
                 },
                 new Director
                 {
@@ -604,8 +610,6 @@ public class MovieContext : DbContext
             entity.HasMany(s => s.Screening).WithOne(m => m.Movie);
             entity.HasOne(pc => pc.Production_company).WithMany(m => m.Movie).HasForeignKey(pc => pc.Company_id).OnDelete(DeleteBehavior.Cascade);
             entity.HasKey(a => a.Movie_id);
-
-            entity.Property(m => m.Movie_id).UseIdentityColumn();
             
             entity.Property(a => a.Release_date); 
             entity.Property(a => a.Runtime);
@@ -1288,6 +1292,145 @@ public class MovieContext : DbContext
                     Screening_id = 10
                 }
             );
+        });
+
+        modelBuilder.Entity<Media_outlet>(entity =>
+        {
+            entity.HasMany(m => m.Reviewer).WithOne(r => r.Media_outlet);
+            entity.HasKey(m => m.Media_outlet_id);
+            entity.Property(m => m.Name).IsRequired();
+            entity.Property(m => m.Outlet_type).IsRequired();
+            entity.Property(m => m.Website).IsRequired();
+            entity.HasData(
+                new Media_outlet
+                {
+                    Media_outlet_id = 1,
+                    Name = "Movie Weekly",
+                    Outlet_type = "Magazine",
+                    Website = "https://movieweekly.example"
+                },
+                new Media_outlet
+                {
+                    Media_outlet_id = 2,
+                    Name = "Screen Scene",
+                    Outlet_type = "Newspaper",
+                    Website = "https://screenscene.example"
+                },
+                new Media_outlet
+                {
+                    Media_outlet_id = 3,
+                    Name = "Cinema Today",
+                    Outlet_type = "Newspaper",
+                    Website = "https://cinematoday.example"
+                }
+            );
+            entity.ToTable("Media_outlet");
+        });
+
+        modelBuilder.Entity<Reviewer>(entity =>
+        {
+            entity.HasOne(r => r.Identity_user).WithOne(i => i.Reviewer).HasForeignKey<Reviewer>(r => r.Identity_user_id).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(r => r.Review).WithOne(re => re.Reviewer);
+            entity.HasOne(r => r.Media_outlet)
+                .WithMany(m => m.Reviewer)
+                .HasForeignKey(r => r.Media_outlet_id)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasKey(r => r.Reviewer_id);
+            entity.Property(r => r.Name).IsRequired();
+            entity.HasData(
+                new Reviewer
+                {
+                    Reviewer_id = 1,
+                    Name = "Alex Morgan",
+                    Media_outlet_id = 1,
+                },
+                new Reviewer
+                {
+                    Reviewer_id = 2,
+                    Name = "Jamie Taylor",
+                    Media_outlet_id = 2,
+                },
+                new Reviewer
+                {
+                    Reviewer_id = 3,
+                    Name = "Sam Rivera",
+                    Media_outlet_id = 3,
+                }
+            );
+            entity.ToTable("Reviewer");
+        });
+
+        modelBuilder.Entity<Review>(entity =>
+        {
+            entity.HasKey(r => r.Review_id);
+            entity.HasOne(r => r.Movie)
+                .WithMany(m => m.Review)
+                .HasForeignKey(r => r.Movie_id)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(r => r.Reviewer)
+                .WithMany(re => re.Review)
+                .HasForeignKey(r => r.Reviewer_id)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(r => r.Headline).IsRequired();
+            entity.Property(r => r.Review_text).IsRequired();
+            entity.Property(r => r.Rating).IsRequired();
+            entity.Property(r => r.Published_at).IsRequired();
+            entity.HasData(
+                new Review
+                {
+                    Review_id = 1,
+                    Headline = "A brilliant puzzle",
+                    Review_text = "Inception combines striking visuals with an inventive story.",
+                    Rating = 5,
+                    Published_at = new DateTime(2026, 9, 12, 10, 0, 0),
+                    Movie_id = 1,
+                    Reviewer_id = 1
+                },
+                new Review
+                {
+                    Review_id = 2,
+                    Headline = "A journey through space and time",
+                    Review_text = "Interstellar balances large-scale spectacle with an emotional story.",
+                    Rating = 5,
+                    Published_at = new DateTime(2026, 9, 13, 11, 30, 0),
+                    Movie_id = 2,
+                    Reviewer_id = 1
+                },
+                new Review
+                {
+                    Review_id = 3,
+                    Headline = "A striking character study",
+                    Review_text = "Joker delivers a focused performance in a distinctive, unsettling world.",
+                    Rating = 4,
+                    Published_at = new DateTime(2026, 9, 14, 14, 0, 0),
+                    Movie_id = 3,
+                    Reviewer_id = 2
+                },
+                new Review
+                {
+                    Review_id = 4,
+                    Headline = "A sweeping science-fiction epic",
+                    Review_text = "Dune brings its expansive world to the screen with memorable imagery.",
+                    Rating = 4,
+                    Published_at = new DateTime(2026, 9, 15, 9, 45, 0),
+                    Movie_id = 4,
+                    Reviewer_id = 3
+                },
+                new Review
+                {
+                    Review_id = 5,
+                    Headline = "An impressive continuation",
+                    Review_text = "Dune Part Two builds on the first film with larger set pieces and strong performances.",
+                    Rating = 5,
+                    Published_at = new DateTime(2026, 9, 16, 16, 15, 0),
+                    Movie_id = 5,
+                    Reviewer_id = 2
+                }
+            );
+            entity.ToTable("Review", table =>
+            {
+                table.HasCheckConstraint("Review_rating", "[Rating] >= 1 AND [Rating] <= 5");
+            });
         });
 
         base.OnModelCreating(modelBuilder);

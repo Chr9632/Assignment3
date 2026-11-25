@@ -28,4 +28,5 @@ public class Movie
     public Director Director { get; set; } = null!;
     public ICollection<Screening> Screening { get; set; } = null!;
     public Production_company Production_company { get; set; } = null!;
+    public ICollection<Review> Review { get; set; } = null!;
 }

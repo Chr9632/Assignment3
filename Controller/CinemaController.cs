@@ -1,5 +1,6 @@
 using assignment_3_movievault.DTO;
 using assignment_3_movievault.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -13,6 +14,7 @@ public class CinemaController : ControllerBase
         _cinemarevenue = cinemarevenue;
     }
 
+    [Authorize(Roles = "Actor, Director, Reviewer, Admin")]
     [HttpGet("/cinemas/revenue")]
     public async Task<IActionResult> GetCinemaRevenue(CancellationToken cancellationToken)
     {

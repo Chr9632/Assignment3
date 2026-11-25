@@ -16,7 +16,7 @@ namespace assignment_3_movievault.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.15")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -36,6 +36,9 @@ namespace assignment_3_movievault.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(1)");
 
+                    b.Property<string>("Identity_user_id")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -45,6 +48,10 @@ namespace assignment_3_movievault.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Actor_id");
+
+                    b.HasIndex("Identity_user_id")
+                        .IsUnique()
+                        .HasFilter("[Identity_user_id] IS NOT NULL");
 
                     b.ToTable("Actor", null, t =>
                         {
@@ -188,6 +195,9 @@ namespace assignment_3_movievault.Migrations
                     b.Property<DateTime>("Date_birth")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Identity_user_id")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -197,6 +207,10 @@ namespace assignment_3_movievault.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Director_id");
+
+                    b.HasIndex("Identity_user_id")
+                        .IsUnique()
+                        .HasFilter("[Identity_user_id] IS NOT NULL");
 
                     b.ToTable("Director", null, t =>
                         {
@@ -299,6 +313,256 @@ namespace assignment_3_movievault.Migrations
                             Location_type = "landscape",
                             Name = "Iceland Highlands"
                         });
+                });
+
+            modelBuilder.Entity("Identity_user", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("AccessFailedCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("LockoutEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset?>("LockoutEnd")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("NormalizedUserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("PhoneNumberConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("SecurityStamp")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedEmail")
+                        .HasDatabaseName("EmailIndex");
+
+                    b.HasIndex("NormalizedUserName")
+                        .IsUnique()
+                        .HasDatabaseName("UserNameIndex")
+                        .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("Media_outlet", b =>
+                {
+                    b.Property<int>("Media_outlet_id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Media_outlet_id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Outlet_type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Website")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Media_outlet_id");
+
+                    b.ToTable("Media_outlet", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Media_outlet_id = 1,
+                            Name = "Movie Weekly",
+                            Outlet_type = "Magazine",
+                            Website = "https://movieweekly.example"
+                        },
+                        new
+                        {
+                            Media_outlet_id = 2,
+                            Name = "Screen Scene",
+                            Outlet_type = "Newspaper",
+                            Website = "https://screenscene.example"
+                        },
+                        new
+                        {
+                            Media_outlet_id = 3,
+                            Name = "Cinema Today",
+                            Outlet_type = "Newspaper",
+                            Website = "https://cinematoday.example"
+                        });
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("NormalizedName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("RoleNameIndex")
+                        .HasFilter("[NormalizedName] IS NOT NULL");
+
+                    b.ToTable("AspNetRoles", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RoleId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("AspNetRoleClaims", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AspNetUserClaims", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
+                {
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ProviderKey")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ProviderDisplayName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("LoginProvider", "ProviderKey");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AspNetUserLogins", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("RoleId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("AspNetUserRoles", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("UserId", "LoginProvider", "Name");
+
+                    b.ToTable("AspNetUserTokens", (string)null);
                 });
 
             modelBuilder.Entity("Movie", b =>
@@ -698,6 +962,147 @@ namespace assignment_3_movievault.Migrations
                             Production_budget = 190000000,
                             Shooting_end_date = new DateTime(2022, 12, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Shooting_start_date = new DateTime(2022, 7, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        });
+                });
+
+            modelBuilder.Entity("Review", b =>
+                {
+                    b.Property<int>("Review_id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Review_id"));
+
+                    b.Property<string>("Headline")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Movie_id")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Published_at")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Review_text")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Reviewer_id")
+                        .HasColumnType("int");
+
+                    b.HasKey("Review_id");
+
+                    b.HasIndex("Movie_id");
+
+                    b.HasIndex("Reviewer_id");
+
+                    b.ToTable("Review", null, t =>
+                        {
+                            t.HasCheckConstraint("Review_rating", "[Rating] >= 1 AND [Rating] <= 5");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Review_id = 1,
+                            Headline = "A brilliant puzzle",
+                            Movie_id = 1,
+                            Published_at = new DateTime(2026, 9, 12, 10, 0, 0, 0, DateTimeKind.Unspecified),
+                            Rating = 5,
+                            Review_text = "Inception combines striking visuals with an inventive story.",
+                            Reviewer_id = 1
+                        },
+                        new
+                        {
+                            Review_id = 2,
+                            Headline = "A journey through space and time",
+                            Movie_id = 2,
+                            Published_at = new DateTime(2026, 9, 13, 11, 30, 0, 0, DateTimeKind.Unspecified),
+                            Rating = 5,
+                            Review_text = "Interstellar balances large-scale spectacle with an emotional story.",
+                            Reviewer_id = 1
+                        },
+                        new
+                        {
+                            Review_id = 3,
+                            Headline = "A striking character study",
+                            Movie_id = 3,
+                            Published_at = new DateTime(2026, 9, 14, 14, 0, 0, 0, DateTimeKind.Unspecified),
+                            Rating = 4,
+                            Review_text = "Joker delivers a focused performance in a distinctive, unsettling world.",
+                            Reviewer_id = 2
+                        },
+                        new
+                        {
+                            Review_id = 4,
+                            Headline = "A sweeping science-fiction epic",
+                            Movie_id = 4,
+                            Published_at = new DateTime(2026, 9, 15, 9, 45, 0, 0, DateTimeKind.Unspecified),
+                            Rating = 4,
+                            Review_text = "Dune brings its expansive world to the screen with memorable imagery.",
+                            Reviewer_id = 3
+                        },
+                        new
+                        {
+                            Review_id = 5,
+                            Headline = "An impressive continuation",
+                            Movie_id = 5,
+                            Published_at = new DateTime(2026, 9, 16, 16, 15, 0, 0, DateTimeKind.Unspecified),
+                            Rating = 5,
+                            Review_text = "Dune Part Two builds on the first film with larger set pieces and strong performances.",
+                            Reviewer_id = 2
+                        });
+                });
+
+            modelBuilder.Entity("Reviewer", b =>
+                {
+                    b.Property<int>("Reviewer_id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Reviewer_id"));
+
+                    b.Property<string>("Identity_user_id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("Media_outlet_id")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Reviewer_id");
+
+                    b.HasIndex("Identity_user_id")
+                        .IsUnique()
+                        .HasFilter("[Identity_user_id] IS NOT NULL");
+
+                    b.HasIndex("Media_outlet_id");
+
+                    b.ToTable("Reviewer", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Reviewer_id = 1,
+                            Media_outlet_id = 1,
+                            Name = "Alex Morgan"
+                        },
+                        new
+                        {
+                            Reviewer_id = 2,
+                            Media_outlet_id = 2,
+                            Name = "Jamie Taylor"
+                        },
+                        new
+                        {
+                            Reviewer_id = 3,
+                            Media_outlet_id = 3,
+                            Name = "Sam Rivera"
                         });
                 });
 
@@ -1136,6 +1541,77 @@ namespace assignment_3_movievault.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Actor", b =>
+                {
+                    b.HasOne("Identity_user", "Identity_user")
+                        .WithOne("Actor")
+                        .HasForeignKey("Actor", "Identity_user_id")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Identity_user");
+                });
+
+            modelBuilder.Entity("Director", b =>
+                {
+                    b.HasOne("Identity_user", "Identity_user")
+                        .WithOne("Director")
+                        .HasForeignKey("Director", "Identity_user_id")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Identity_user");
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
+                {
+                    b.HasOne("Identity_user", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
+                {
+                    b.HasOne("Identity_user", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Identity_user", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
+                {
+                    b.HasOne("Identity_user", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Movie", b =>
                 {
                     b.HasOne("Production_company", "Production_company")
@@ -1202,6 +1678,43 @@ namespace assignment_3_movievault.Migrations
                         .IsRequired();
 
                     b.Navigation("Movie");
+                });
+
+            modelBuilder.Entity("Review", b =>
+                {
+                    b.HasOne("Movie", "Movie")
+                        .WithMany("Review")
+                        .HasForeignKey("Movie_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Reviewer", "Reviewer")
+                        .WithMany("Review")
+                        .HasForeignKey("Reviewer_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Movie");
+
+                    b.Navigation("Reviewer");
+                });
+
+            modelBuilder.Entity("Reviewer", b =>
+                {
+                    b.HasOne("Identity_user", "Identity_user")
+                        .WithOne("Reviewer")
+                        .HasForeignKey("Reviewer", "Identity_user_id")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Media_outlet", "Media_outlet")
+                        .WithMany("Reviewer")
+                        .HasForeignKey("Media_outlet_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Identity_user");
+
+                    b.Navigation("Media_outlet");
                 });
 
             modelBuilder.Entity("Screen", b =>
@@ -1276,6 +1789,20 @@ namespace assignment_3_movievault.Migrations
                     b.Navigation("Movie_location");
                 });
 
+            modelBuilder.Entity("Identity_user", b =>
+                {
+                    b.Navigation("Actor");
+
+                    b.Navigation("Director");
+
+                    b.Navigation("Reviewer");
+                });
+
+            modelBuilder.Entity("Media_outlet", b =>
+                {
+                    b.Navigation("Reviewer");
+                });
+
             modelBuilder.Entity("Movie", b =>
                 {
                     b.Navigation("Movie_actor");
@@ -1285,6 +1812,8 @@ namespace assignment_3_movievault.Migrations
                     b.Navigation("Production_Record")
                         .IsRequired();
 
+                    b.Navigation("Review");
+
                     b.Navigation("Screening");
                 });
 
@@ -1293,6 +1822,11 @@ namespace assignment_3_movievault.Migrations
                     b.Navigation("Movie");
 
                     b.Navigation("Studio");
+                });
+
+            modelBuilder.Entity("Reviewer", b =>
+                {
+                    b.Navigation("Review");
                 });
 
             modelBuilder.Entity("Screen", b =>
