@@ -8,12 +8,16 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var mongoConnectionString = builder.Configuration["MongoDB:ConnectionString"];
+var mongoCollectionName = builder.Configuration["MongoDB:CollectionName"];
+
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .WriteTo.MongoDBBson(
-        "mongodb://localhost:27017/MovieVaultLogs",
-        collectionName: "logs")
+        mongoConnectionString!,
+        collectionName: mongoCollectionName!)
     .CreateLogger();
+
 builder.Host.UseSerilog();
 
 Log.Information("MovieVault API - Serilog is working!");
@@ -35,13 +39,31 @@ builder.Services.AddScoped<MovieLocation>();
 builder.Services.AddScoped<MovieServices>();
 builder.Services.AddScoped<Screenings>();
 builder.Services.AddScoped<TicketSales>();
+builder.Services.AddSingleton<LogService>();
 
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
-app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging(options =>
+{
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        diagnosticContext.Set("username",
+            httpContext.User.Identity?.Name ?? "anonymous");
 
+        diagnosticContext.Set("timestamp", DateTime.UtcNow);
+
+        diagnosticContext.Set("requestType",
+            httpContext.Request.Method);
+
+        diagnosticContext.Set("route",
+            httpContext.Request.Path.ToString());
+
+        diagnosticContext.Set("statusCode",
+            httpContext.Response.StatusCode);
+    };
+});
 using var scope = app.Services.CreateScope();
 
 var context = scope.ServiceProvider.GetRequiredService<MovieContext>();
