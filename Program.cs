@@ -92,6 +92,7 @@ builder.Services.AddScoped<MovieLocation>();
 builder.Services.AddScoped<MovieServices>();
 builder.Services.AddScoped<Screenings>();
 builder.Services.AddScoped<TicketSales>();
+builder.Services.AddScoped<Reviewservice>();
 
 builder.Services.AddControllers();
 

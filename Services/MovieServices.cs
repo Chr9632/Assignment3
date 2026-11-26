@@ -49,11 +49,6 @@ public class MovieServices : IMovieService
         .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public Task<bool> MovieExistsAsync(int id, CancellationToken cancellationToken)
-    {
-        return _context.Movies.AnyAsync(m => m.Movie_id == id, cancellationToken);
-    }
-
     public async Task<MovieResponseDto> AddMovieAsync(CreateMovieDto dto, CancellationToken cancellationToken)
     {
         var movie = new Movie

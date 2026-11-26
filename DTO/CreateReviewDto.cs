@@ -16,4 +16,6 @@ public class CreateReviewDto
 
     [Range(1, int.MaxValue)]
     public int Movie_id { get; set; }
+
+    public int? Reviewer_id { get; set; }
 }
