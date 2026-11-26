@@ -1,0 +1,92 @@
+services:
+  sql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${SQL_PORT:-1433}:1433"
+    volumes:
+      - sql_data:/var/opt/mssql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:8.0
+    ports:
+      - "127.0.0.1:${MONGODB_PORT:-27017}:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "db.adminCommand('ping').ok"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: 8000
+      ConnectionStrings__DefaultConnection: "Server=sql,1433;Database=${SQL_DATABASE:-MovieVaultTestDB};User Id=sa;Password=${MSSQL_SA_PASSWORD};Encrypt=False;TrustServerCertificate=True"
+      JWT__Issuer: ${JWT_ISSUER:-Movievault}
+      JWT__Audience: ${JWT_AUDIENCE:-Movievault}
+      JWT__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in .env}
+      MongoDB__ConnectionString: mongodb://mongodb:27017/MovieVaultLogs
+      MongoDB__CollectionName: logs
+      SeedUsers__AdminPassword: ${ADMIN_DEMO_PASSWORD:?Set ADMIN_DEMO_PASSWORD in .env}
+      SeedUsers__ActorPassword: ${ACTOR_DEMO_PASSWORD:?Set ACTOR_DEMO_PASSWORD in .env}
+      SeedUsers__DirectorPassword: ${DIRECTOR_DEMO_PASSWORD:?Set DIRECTOR_DEMO_PASSWORD in .env}
+      SeedUsers__ReviewerAlexPassword: ${REVIEWER_ALEX_PASSWORD:?Set REVIEWER_ALEX_PASSWORD in .env}
+      SeedUsers__ReviewerJamiePassword: ${REVIEWER_JAMIE_PASSWORD:?Set REVIEWER_JAMIE_PASSWORD in .env}
+      SeedUsers__ReviewerSamPassword: ${REVIEWER_SAM_PASSWORD:?Set REVIEWER_SAM_PASSWORD in .env}
+      Simulator__Authentication__Username: ${SIMULATOR_USERNAME:?Set SIMULATOR_USERNAME in .env}
+      Simulator__Authentication__Password: ${SIMULATOR_PASSWORD:?Set SIMULATOR_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${API_PORT:-5203}:8000"
+    depends_on:
+      sql:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ticket-simulator:
+    build:
+      context: ./MovieVault.TicketSimulator
+      dockerfile: Dockerfile
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      Simulator__BaseUrl: http://api:8000/
+      Simulator__Authentication__Enabled: "true"
+      Simulator__Authentication__LoginPath: api/auth/login
+      Simulator__Authentication__Username: ${SIMULATOR_USERNAME:?Set SIMULATOR_USERNAME in .env}
+      Simulator__Authentication__Password: ${SIMULATOR_PASSWORD:?Set SIMULATOR_PASSWORD in .env}
+      Simulator__MoviesPath: Movie
+      Simulator__ScreeningsPath: movies/{movieId}/screenings
+      Simulator__TicketSalesPath: TicketSales
+      Simulator__IntervalSeconds: ${SIMULATOR_INTERVAL_SECONDS:-10}
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  sql_data:
+  mongodb_data:

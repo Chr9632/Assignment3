@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using assignment_3_movievault.Migrations;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -148,7 +147,7 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 
-await SeedUsers.SeedUser(userManager, roleManager, context);
+await SeedUsers.SeedUser(userManager, roleManager, context, builder.Configuration);
 
 // Move Serilog here. 
 

@@ -4,7 +4,7 @@ using SharpCompress.Compressors.ZStandard.Unsafe;
 
 public class SeedUsers
 {
-    public static async Task SeedUser(UserManager<Identity_user> userManager, RoleManager<IdentityRole> roleManager, MovieContext context)
+    public static async Task SeedUser(UserManager<Identity_user> userManager, RoleManager<IdentityRole> roleManager, MovieContext context, IConfiguration configuration)
     {
         string[] roles = {"Actor", "Director", "Reviewer", "Admin"};
 
@@ -28,7 +28,10 @@ public class SeedUsers
                 EmailConfirmed = true
             };
 
-            var result = await userManager.CreateAsync(user, "Admin123!");
+            var result = await userManager.CreateAsync(
+                user,
+                configuration["SeedUsers:AdminPassword"]
+                    ?? throw new InvalidOperationException("SeedUsers:AdminPassword is not configured."));
 
             if(result.Succeeded)
             {
@@ -48,7 +51,10 @@ public class SeedUsers
                 EmailConfirmed = true
             };
 
-            var result = await userManager.CreateAsync(userActor, "Actor123!");
+            var result = await userManager.CreateAsync(
+                userActor,
+                configuration["SeedUsers:ActorPassword"]
+                    ?? throw new InvalidOperationException("SeedUsers:ActorPassword is not configured."));
 
             if(result.Succeeded)
             {
@@ -73,7 +79,10 @@ public class SeedUsers
                 EmailConfirmed = true
             };
 
-            var result = await userManager.CreateAsync(userDirector, "Director123!");
+            var result = await userManager.CreateAsync(
+                userDirector,
+                configuration["SeedUsers:DirectorPassword"]
+                    ?? throw new InvalidOperationException("SeedUsers:DirectorPassword is not configured."));
 
             if(result.Succeeded)
             {
@@ -100,7 +109,10 @@ public class SeedUsers
                 EmailConfirmed = true
             };
 
-            var result = await userManager.CreateAsync(user1, "Reviewer1123!");
+            var result = await userManager.CreateAsync(
+                user1,
+                configuration["SeedUsers:ReviewerAlexPassword"]
+                    ?? throw new InvalidOperationException("SeedUsers:ReviewerAlexPassword is not configured."));
 
             if(result.Succeeded)
             {
@@ -127,7 +139,10 @@ public class SeedUsers
                 EmailConfirmed = true
             };
 
-            var result = await userManager.CreateAsync(user2, "Reviewer2123!");
+            var result = await userManager.CreateAsync(
+                user2,
+                configuration["SeedUsers:ReviewerJamiePassword"]
+                    ?? throw new InvalidOperationException("SeedUsers:ReviewerJamiePassword is not configured."));
 
             if(result.Succeeded)
             {
@@ -154,7 +169,10 @@ public class SeedUsers
                 EmailConfirmed = true
             };
 
-            var result = await userManager.CreateAsync(user3, "Reviewer3123!");
+            var result = await userManager.CreateAsync(
+                user3,
+                configuration["SeedUsers:ReviewerSamPassword"]
+                    ?? throw new InvalidOperationException("SeedUsers:ReviewerSamPassword is not configured."));
 
             if(result.Succeeded)
             {
@@ -168,7 +186,65 @@ public class SeedUsers
             }
         }
 
+        var simulatorUsername = configuration["Simulator:Authentication:Username"];
+        var simulatorPassword = configuration["Simulator:Authentication:Password"];
+
+        if(string.IsNullOrWhiteSpace(simulatorUsername)
+            != string.IsNullOrWhiteSpace(simulatorPassword))
+        {
+            throw new InvalidOperationException(
+                "Both simulator authentication username and password must be configured.");
+        }
+
+        if(!string.IsNullOrWhiteSpace(simulatorUsername)
+            && !string.IsNullOrWhiteSpace(simulatorPassword))
+        {
+            if(new[]
+            {
+                adminEmail,
+                actorEmail,
+                directorEmail,
+                reviewer1Email,
+                reviewer2Email,
+                reviewer3Email
+            }.Contains(simulatorUsername, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "The simulator account must be separate from the demonstration users.");
+            }
+
+            var simulatorUser = await userManager.FindByNameAsync(simulatorUsername);
+            if(simulatorUser == null)
+            {
+                simulatorUser = new Identity_user
+                {
+                    Name = "MovieVault Ticket Simulator",
+                    UserName = simulatorUsername,
+                    Email = simulatorUsername,
+                    EmailConfirmed = true
+                };
+
+                var result = await userManager.CreateAsync(simulatorUser, simulatorPassword);
+                if(!result.Succeeded)
+                {
+                    throw new InvalidOperationException(
+                        $"Could not create simulator account: {string.Join("; ", result.Errors.Select(error => error.Description))}");
+                }
+            }
+
+            if(!await userManager.IsInRoleAsync(simulatorUser, "Admin"))
+            {
+                var result = await userManager.AddToRoleAsync(simulatorUser, "Admin");
+                if(!result.Succeeded)
+                {
+                    throw new InvalidOperationException(
+                        $"Could not assign the Admin role to the simulator account: {string.Join("; ", result.Errors.Select(error => error.Description))}");
+                }
+            }
+        }
+
         await context.SaveChangesAsync();
 
     }
+
 }
