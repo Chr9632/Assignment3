@@ -10,6 +10,7 @@ public class Worker : BackgroundService
     private readonly ILogger<Worker> _logger;
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
+    private DateTime _tokenExpiresAt = DateTime.MinValue;
 
     public Worker(
         ILogger<Worker> logger,
@@ -54,7 +55,7 @@ public class Worker : BackgroundService
         }
     }
 
-    private async Task AuthenticateAsync(
+private async Task AuthenticateAsync(
     CancellationToken cancellationToken)
     {
         if (!_configuration.GetValue<bool>(
@@ -63,13 +64,26 @@ public class Worker : BackgroundService
             return;
         }
 
+        // Reuse the token until it needs to be refreshed
+        if (_httpClient.DefaultRequestHeaders.Authorization != null
+            && DateTime.UtcNow < _tokenExpiresAt)
+        {
+            return;
+        }
+
         var loginRequest = new
         {
-            Username = _configuration[
+            Name = _configuration[
+                "Simulator:Authentication:Username"],
+            Email = _configuration[
                 "Simulator:Authentication:Username"],
             Password = _configuration[
                 "Simulator:Authentication:Password"]
         };
+
+        _httpClient.DefaultRequestHeaders.Authorization = null;
+
+        var loginStartedAt = DateTime.UtcNow;
 
         using var response = await _httpClient.PostAsJsonAsync(
             _configuration["Simulator:Authentication:LoginPath"],
@@ -78,22 +92,23 @@ public class Worker : BackgroundService
 
         response.EnsureSuccessStatusCode();
 
-        var login = await response.Content
-            .ReadFromJsonAsync<LoginResponseDto>(
-                cancellationToken: cancellationToken);
+        var token = (await response.Content
+            .ReadAsStringAsync(cancellationToken))
+            .Trim().Trim('"');
 
-        if (string.IsNullOrWhiteSpace(login?.Token))
+        if (string.IsNullOrWhiteSpace(token))
         {
             throw new InvalidOperationException(
                 "Login did not return a token.");
         }
 
         _httpClient.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", login.Token);
+            new AuthenticationHeaderValue("Bearer", token);
+
+        _tokenExpiresAt = loginStartedAt.AddSeconds(270);
 
         _logger.LogInformation("Authentication successful.");
     }
-
     private async Task SimulateTicketSaleAsync(
         CancellationToken cancellationToken)
     {
@@ -186,9 +201,4 @@ public class TicketSaleDto
     public DateTime Sale_date_time { get; set; }
 
     public int Screening_id { get; set; }
-}
-
-public class LoginResponseDto
-{
-    public string Token { get; set; } = string.Empty;
 }
