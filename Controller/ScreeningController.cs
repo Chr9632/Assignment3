@@ -1,18 +1,55 @@
+using System.Security.Claims;
 using assignment_3_movievault.DTO;
 using assignment_3_movievault.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("[controller]")]
 public class ScreeningController : ControllerBase
 {
     private readonly Screenings _screenings;
+    private readonly MovieContext _context;
 
-    public ScreeningController(Screenings screenings)
+    public ScreeningController(Screenings screenings, MovieContext context)
     {
         _screenings = screenings;
+        _context = context;
     }
 
+    private async Task<List<int>?> GetSpecificScreeningsAsync(CancellationToken cancellationToken)
+    {
+        if(User.IsInRole("Reviewer") || User.IsInRole("Admin"))
+        {
+            return null;
+        }
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if(string.IsNullOrEmpty(userId))
+        {
+            return new List<int>();
+        }
+
+        if(User.IsInRole("Actor"))
+        {
+            return await _context.Movie_actors.Where(ma => ma.Actor.Identity_user_id == userId)
+            .Select(ma => ma.Movie_id)
+            .ToListAsync(cancellationToken);
+        }
+
+        if(User.IsInRole("Director"))
+        {
+            return await _context.Movies.Where(m => m.Director.Identity_user_id == userId)
+            .Select(m => m.Movie_id)
+            .ToListAsync(cancellationToken);
+        }
+
+        return new List<int>();
+    }
+
+    [Authorize(Roles = "Admin")]
     [HttpPost("/screenings")]
     public async Task<IActionResult> AddScreening(CreateScreeningDto dto, CancellationToken cancellationToken)
     {
@@ -45,6 +82,7 @@ public class ScreeningController : ControllerBase
         return CreatedAtAction(nameof(UpdateScreening), new { id = screening.Screening_id }, screening);
     }
 
+    [Authorize(Roles = "Actor, Director, Reviewer, Admin")]
     [HttpGet("/movies/{movieId}/screenings")]
     public async Task<IActionResult> GetScreeningMovies(int movieId, CancellationToken cancellationToken)
     {
@@ -56,9 +94,18 @@ public class ScreeningController : ControllerBase
         */
 
         var screenings = await _screenings.GetScreeningMoviesAsync(movieId, cancellationToken);
+
+        var Ids = await GetSpecificScreeningsAsync(cancellationToken);
+
+        if(Ids != null && !Ids.Contains(movieId))
+        {
+            return Forbid();
+        }
+
         return Ok(screenings);
     }
 
+    [Authorize(Roles = "Actor, Director, Reviewer, Admin")]
     [HttpGet("/cinemas/{cinemaId}/screenings")]
     public async Task<IActionResult> GetScreeningCinemas(int cinemaId, CancellationToken cancellationToken)
     {
@@ -70,9 +117,17 @@ public class ScreeningController : ControllerBase
         */
 
         var screenings = await _screenings.GetScreeningCinemasAsync(cinemaId, cancellationToken);
+        var Ids = await GetSpecificScreeningsAsync(cancellationToken);
+
+        if(Ids != null)
+        {
+            screenings = screenings.Where(s => Ids.Contains(s.Movie_id)).ToList();
+        }
+
         return Ok(screenings);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("/screenings/{id}")]
     public async Task<IActionResult> UpdateScreening(int id, UpdateScreeningDto dto, CancellationToken cancellationToken)
     {
@@ -109,6 +164,7 @@ public class ScreeningController : ControllerBase
         return Ok(screening);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("/screenings/{id}")]
     public async Task<IActionResult> RemoveScreening(int id, CancellationToken cancellationToken)
     {
@@ -131,10 +187,23 @@ public class ScreeningController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "Actor, Director, Reviewer, Admin")]
     [HttpGet("/screenings/upcoming")]
     public async Task<IActionResult> ShowUpcomingScreening(CancellationToken cancellationToken)
     {
         var screenings = await _screenings.ShowUpcomingScreeningAsync(cancellationToken);
+
+        var Ids = await GetSpecificScreeningsAsync(cancellationToken);
+
+        if(Ids != null)
+        {
+            var titles = await _context.Movies.Where(m => Ids.Contains(m.Movie_id))
+            .Select(m => m.Title)
+            .ToListAsync(cancellationToken);
+
+            screenings = screenings.Where(s => titles.Contains(s.Movie_title)).ToList();
+        }
+        
         return Ok(screenings);
     }
 }
